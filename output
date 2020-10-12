@@ -1,0 +1,10 @@
+toplevel .output
+text .output.t -width 1000 -height 490
+pack .output.t
+.output.t configure -state disabled
+set அ 1
+if {${அ} == 1} {
+.output.t configure -state normal
+.output.t insert end "\${அ} வின் மதிப்பு ${அ}"
+.output.t configure -state disabled
+}

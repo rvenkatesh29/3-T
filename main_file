@@ -1,0 +1,254 @@
+#!/usr/bin/tclsh
+
+set ipfile ""
+set line_no 0
+set opfile ""
+set errfile ""
+regsub {\\program_files\\(.*)$} $::argv0 {/program_files/errorfile} error_file_name	
+#set errfile [open $error_file_name w]
+# Open the files
+proc open_compilation_file {file_name} {
+	global ipfile line_no opfile errfile
+       regsub {\\program_files\\(.*)$} $::argv0 {/program_files/output} source_file_name	
+       regsub {\\program_files\\(.*)$} $::argv0 {/program_files/errorfile} error_file_name	
+set opfile [open $source_file_name  w]
+puts $opfile "#!/usr/bin/tclsh"
+set ipfile [open $file_name r]
+set int_var [list ]
+set char_var [list ]
+set line_no 0
+set function_list [list ]
+puts $opfile "
+set file_name \{$file_name\}
+regsub \{/my_files/\(.*\)\} \$file_name \{/program_files/errorfile\} error_file_name	
+set errfile \[open \$error_file_name w\]
+fconfigure \$errfile -encoding utf-8
+
+proc sub_numbers_to_arabic \{rhs\} \{
+   regsub -all \{१\} \$rhs \{1\} rhs
+   regsub -all \{२\} \$rhs \{2\} rhs
+   regsub -all \{३\} \$rhs \{3\} rhs
+   regsub -all \{४\} \$rhs \{4\} rhs
+   regsub -all \{५\} \$rhs \{5\} rhs
+   regsub -all \{६\} \$rhs \{6\} rhs
+   regsub -all \{७\} \$rhs \{7\} rhs
+   regsub -all \{८\} \$rhs \{8\} rhs
+   regsub -all \{९\} \$rhs \{9\} rhs
+   regsub -all \{०\} \$rhs \{0\} rhs
+   return \$rhs
+\}
+proc sub_numbers_to_devanagari \{rhs\} \{
+   regsub -all \{1\} \$rhs \{१\} rhs
+   regsub -all \{2\} \$rhs \{२\} rhs
+   regsub -all \{3\} \$rhs \{३\} rhs
+   regsub -all \{4\} \$rhs \{४\} rhs
+   regsub -all \{5\} \$rhs \{५\} rhs
+   regsub -all \{6\} \$rhs \{६\} rhs
+   regsub -all \{7\} \$rhs \{७\} rhs
+   regsub -all \{8\} \$rhs \{८\} rhs
+   regsub -all \{9\} \$rhs \{९\} rhs
+   regsub -all \{0\} \$rhs \{०\} rhs
+   return \$rhs
+\}
+global res_win
+set res_win \[grid \[text .res_win1\]\]
+.res_win1 configure -state disabled
+
+#Proc to get irrespective value from stdin
+proc stdin \{\} \{
+	set var \"\"
+	set current1 \"\"
+        .res_win1 mark set limit insert
+        .res_win1 mark gravity limit left
+        .res_win1 configure -state normal
+	focus .res_win1
+	bind .res_win1 <Return> \{
+		set var 1
+	\}
+	bind .res_win1 <BackSpace> \{
+		if \{\[%W compare insert > limit\]\} \{
+			%W delete insert-1c
+			%W see insert
+		\}
+		break
+	\}
+	bind .res_win1 <Key> \{
+		if \{\[%W compare insert < limit\]\} \{
+			%W mark set insert end
+		\}
+	\}
+	tkwait variable var
+        .res_win1 configure -state disabled
+\}
+	
+	"
+# Quotes end here
+}
+
+# Main program
+proc main {file_name} {
+   global ipfile line_no opfile error_value
+	regsub {\\program_files\\(.*)$} $::argv0 {/program_files/errorfile} error_file_name	
+   set int_var ""
+   set char_var ""
+   set function_name ""
+   set flower_brace {0}
+   set error_value 0
+   global res_win
+   toplevel .output
+   text .output.t -width 50 -height 10
+   pack .output.t
+   .output.t configure -state disabled
+   open_compilation_file $file_name
+   while {[gets $ipfile line] >= 0} {
+	   if {$error_value == 1} {
+		   return 1
+	   }
+	   #to stop at first error
+      incr line_no
+      if {[regexp {;$} $line] == 1} {
+         set line1 [split $line ";"]
+         foreach line2 $line1 {
+            if { [catch {eval $line2} error1] } {
+		    set errfile [open $error_file_name w]
+		    puts $errfile "$error1"
+		    close $errfile
+		    return 1
+	    }
+         }
+      } else {
+            if { [catch {eval $line} error1] } {
+		    set errfile [open $error_file_name w]
+		    puts $errfile "$error1"
+		    close $errfile
+		    return 1
+	    }
+      }
+   }
+   return 0
+    if {[llength $flower_brace] > 1} {
+      error "Missing braces"
+   }
+#   if {[lsearch $function_name "தலை"] == 1} {
+#      puts $ipfile "தலை"
+#   } elseif {[lsearch $function_name "सार"] == 1} {
+#      puts $ipfile "सार" 
+#   } else {
+#      error "No main proc"
+#   }
+   close $opfile
+   close $ipfile
+}
+
+proc print {args } {
+	global ipfile opfile line_no error_value
+	if {$error_value == 1} {
+		return 1
+	}
+	regsub {\\program_files\\(.*)$} $::argv0 {/program_files/errorfile} error_file_name	
+	regsub {\{} $args {} args
+	regsub {\}} $args {} args
+	set a [split $args ""]
+	set into_proc 0
+	set word ""
+	for {set i 0} {$i < [string length $args]} {incr i} {
+		if {[regexp {\$} [lindex $a $i]] == 1} {
+			set word "$word\$\{"
+			set into_proc 1
+		} elseif {[regexp {\s} [lindex $a $i]] == 1} {
+			if {$into_proc == 1} {
+				set word "$word\}"
+				set into_proc 0
+			} 
+			set word "$word "
+		} elseif {$i == [expr [string length $args]-1]} {
+			if {$into_proc == 1} {
+				set word "$word[lindex $a $i]\}"
+				set into_proc 0
+			} else {
+				set word "$word[lindex $a $i]"
+			}
+		} else {
+			set word "$word[lindex $a $i]"
+		}
+	}
+	if {[catch {puts "[subst $word]"} error1]} {
+		set errfile [open $error_file_name w]
+		puts $errfile "$line_no -> $error1"
+		close $errfile
+		set error_value 1
+		return 
+	} else {
+		regsub -all \{@न\} $word \{\\n\} word 
+		regsub -all \{@च\} $word \{\\t\} word 
+		.output.t configure -state normal
+		.output.t insert end "$word"
+		.output.t configure -state disabled
+	}
+	return
+}
+
+proc set_var {var1 val} {
+	global ipfile opfile line_no error_value error_file_name
+	if {$error_value == 1} {
+		return 
+	}
+	regsub {\\program_files\\(.*)$} $::argv0 {/program_files/errorfile} error_file_name	
+	set errfile [open $error_file_name w]
+	regsub {\{} $var1 {} args
+	regsub {\}} $var1 {} args
+	set a [split $var1 ""]
+	set into_proc 0
+	set word ""
+	for {set i 0} {$i < [string length $var1]} {incr i} {
+		if {[regexp {\$} [lindex $a $i]] == 1} {
+			set word "$word\$\{"
+			set into_proc 1
+		} elseif {[regexp {\s} [lindex $a $i]] == 1} {
+			if {$into_proc == 1} {
+				set word "$word\}"
+				set into_proc 0
+			} 
+			set word "$word "
+		} elseif {$i == [expr [string length $args]-1]} {
+			if {$into_proc == 1} {
+				set word "$word[lindex $a $i]\}"
+				set into_proc 0
+			} else {
+				set word "$word[lindex $a $i]"
+			}
+		} else {
+			set word "$word[lindex $a $i]"
+		}
+	}
+	if {[catch {set "$word" $val} error1]} {
+		puts $errfile "$line_no -> $error1"
+		close $errfile
+		set error_value 1
+		return 
+	} else {
+		return $val
+	}
+	
+}	
+
+proc if_statement {expr1 } {
+	global ipfile opfile line_no error_value error_file_name
+	if {$error_value == 1} {
+		return 
+	}
+	if {[catch {expr $expr1} error1]} {
+		set errfile [open $error_file_name w]
+		puts $errfile "$line_no -> $error1"
+		close $errfile
+		set error_value 1
+		return 
+	}
+	gets $ipfile line
+	while {$line != "%"} {
+	       eval $line
+	       gets $ipfile line
+       }	       
+	
+}
+

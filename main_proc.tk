@@ -1,0 +1,72 @@
+#!/usr/bin/tclsh
+
+set error_value 0
+# Main program
+proc main {file_name} {
+	global line_no error_value 
+	regsub {\\program_files\\(.*)$} $::argv0 {/program_files/errorfile} error_file_name	
+	regsub {\\program_files\\(.*)$} $::argv0 {\program_files\output} output_file
+	set opfile [open $output_file w]
+	global res_win
+	puts $opfile "toplevel .output"
+	puts $opfile "text .output.t -width 1000 -height 490"
+	puts $opfile "pack .output.t"
+	puts $opfile ".output.t configure -state disabled"
+	close $opfile
+	set ipfile [open $file_name r]
+	while {[gets $ipfile line] >= 0} {
+		#to stop at first error
+		if {[regexp {^\s*\)\s*$} $line] == 1} {
+			close_bracket
+			continue
+		}
+	     	if { [catch {eval $line} error1] } {
+			set errfile [open $error_file_name w]
+			puts $errfile "$error1"
+			close $errfile
+			return 1
+		}
+		incr line_no
+	}
+	close $ipfile
+}
+proc close_bracket {} {
+	regsub {\\program_files\\(.*)$} $::argv0 {\program_files\output} output_file
+	set opfile [open $output_file a]
+	puts $opfile "\}"
+	close $opfile
+}
+
+proc नियोजयति {विकारी सार} {
+	global line_no
+	regsub {\\program_files\\(.*)$} $::argv0 {\program_files\output} output_file
+	set opfile [open $output_file a]
+	puts $opfile "set ${विकारी} ${सार}"
+	close $opfile
+}
+proc  मुद्रण  {विषय} {
+	global line_no
+	regsub {\\program_files\\(.*)$} $::argv0 {\program_files\output} output_file
+	set opfile [open $output_file a]
+	regsub -all {\$\S*} ${विषय} "$\{&\}"  विषय1
+	regsub -all {\{\$} ${विषय1} "\{" विषय2 
+	puts $opfile ".output.t configure -state normal"
+	puts $opfile ".output.t insert end \"${विषय2}\""
+	puts $opfile ".output.t configure -state disabled"
+	close $opfile
+}
+
+proc यदि {विषय आरम्भ} {
+	global line_no 
+	regsub {\\program_files\\(.*)$} $::argv0 {\program_files\output} output_file
+	if { ${आरम्भ} eq "\("} {
+		set opfile [open $output_file a]	
+		regsub -all {\$\S*} ${विषय} "$\{&\}"  विषय1
+		regsub -all {\{\$} ${विषय1} "\{" विषय2
+		puts $opfile "if \{${विषय2}\} \{"
+		close $opfile
+	} else {
+		error "असमेत"
+	}
+}
+
